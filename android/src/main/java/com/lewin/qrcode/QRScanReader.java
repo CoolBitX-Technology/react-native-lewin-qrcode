@@ -1,10 +1,14 @@
 package com.lewin.qrcode;
 
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
+import android.provider.MediaStore;
 
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
+import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.google.zxing.BinaryBitmap;
@@ -27,9 +31,10 @@ import java.util.Hashtable;
  */
 
 public class QRScanReader extends ReactContextBaseJavaModule {
-
+    private ReactContext reactContext;
     public QRScanReader(ReactApplicationContext reactContext) {
         super(reactContext);
+        this.reactContext = reactContext;
     }
 
     @Override
@@ -73,13 +78,18 @@ public class QRScanReader extends ReactContextBaseJavaModule {
 
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inJustDecodeBounds = true; // 先获取原大小
-        Bitmap scanBitmap = BitmapFactory.decodeFile(path, options);
         options.inJustDecodeBounds = false; // 获取新的大小
         int sampleSize = (int) (options.outHeight / (float) 200);
         if (sampleSize <= 0)
             sampleSize = 1;
         options.inSampleSize = sampleSize;
-        scanBitmap = BitmapFactory.decodeFile(path, options);
+        Bitmap scanBitmap;
+        if(path.startsWith("content://")){
+            Uri uri = Uri.parse(path);
+            scanBitmap = BitmapFactory.decodeFile(getPath(uri), options);
+        }else{
+            scanBitmap = BitmapFactory.decodeFile(path, options);
+        }
         int width=scanBitmap.getWidth();
         int height=scanBitmap.getHeight();
         int[] pixels=new int[width*height];
@@ -274,5 +284,16 @@ public class QRScanReader extends ReactContextBaseJavaModule {
                 }
             }
         }
+    }
+    private String getPath(Uri uri)
+    {
+        String[] projection = { MediaStore.Images.Media.DATA };
+        Cursor cursor = reactContext.getContentResolver().query(uri, projection, null, null, null);
+        if (cursor == null) return null;
+        int column_index =   cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+        cursor.moveToFirst();
+        String s=cursor.getString(column_index);
+        cursor.close();
+        return s;
     }
 }
