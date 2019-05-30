@@ -58,7 +58,10 @@ RCT_EXPORT_METHOD(readerQR:(NSString *)fileUrl success:(RCTPromiseResolveBlock)s
         CIContext *context = [CIContext contextWithOptions:nil];
         CIDetector *detector = [CIDetector detectorOfType:CIDetectorTypeQRCode context:context options:@{CIDetectorAccuracy:CIDetectorAccuracyHigh}];
         NSArray *features = [detector featuresInImage:ciImagee];
-        
+        if(!features || features.count==0){
+            completion(nil);
+            return;
+        }
         //3. 获取扫描结果
         CIQRCodeFeature *feature = [features objectAtIndex:0];
         NSString *scannedResult = feature.messageString;
